@@ -1,7 +1,5 @@
 //
-// DI Computer Graphics
-//
-// WebGL Exercises
+// Windows XP 3D Pipes Screen Saver
 //
 
 window.onload = startup;
@@ -29,11 +27,13 @@ const ctx = {
 // defines all the render settings
 const renderSettings = {
     viewPort: {
-        mode: 'perspective',
+        canvasId: "canvas",
+        mode: "perspective",
         fovy: 90, // in degrees
         aspect: 1,
         near: 1,
-        far: 100
+        far: 100,
+        backgroundColor: vec4.fromValues(0.1, 0.1, 0.1, 1)
     },
     camera: {
         position: vec3.fromValues(-5, 0, 0),
@@ -46,6 +46,7 @@ const renderSettings = {
     }
 };
 
+var tabIsInBackground = false;
 var lastFrameTimestamp = 0;
 var frameCount = -1; // Limits the frames drawn
 
@@ -56,55 +57,91 @@ var objects = { };
  * Startup function to be called when the body is loaded
  */
 function startup() {
-    "use strict";
-    let canvas = document.getElementById("canvas");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    renderSettings.viewPort.aspect = canvas.width / canvas.height;
+    let canvas = document.getElementById(renderSettings.viewPort.canvasId);
 
     gl = createGLContext(canvas);
     initGL();
-    window.addEventListener('keyup', onKeyup, false);
-    window.addEventListener('keydown', onKeydown, false);
+    resizeWindow();
+
+    window.addEventListener("keyup", onKeyup, false);
+    window.addEventListener("keydown", onKeydown, false);
+    window.addEventListener("resize", resizeWindow, false);
+    window.addEventListener("visibilityChange", handleVisibilityChange, false);
+
     drawAnimated(0);
+}
+
+/**
+ * Handle a visibility change. If window hidden, stop rendering and start rendering again if window visible.
+ */
+function handleVisibilityChange() {
+    if (tabIsInBackground && document.hidden) {
+        tabIsInBackground = document.hidden;
+        window.requestAnimationFrame(drawAnimated);
+    }
+
+    tabIsInBackground = document.hidden;
+}
+
+/**
+ * Resizes the window to the current size of the body.
+ */
+function resizeWindow() {
+    let canvas = document.getElementById(renderSettings.viewPort.canvasId);
+
+    setUpViewport(gl, canvas, ctx.uProjectionMatId, window.innerWidth, window.innerHeight, renderSettings.viewPort.fovy,
+        renderSettings.viewPort.near, renderSettings.viewPort.far);
+}
+
+/**
+ * Set all settings for the viewport. Useful for a resize event.
+ */
+function setUpViewport(webgl, canvas, projectionMatrixId, width, height, fov, clipNear, clipFar) {
+    canvas.width = width;
+    canvas.height = height;
+
+    let aspect = width / height;
+    renderSettings.viewPort.aspect = aspect;
+    let projectionMat = generateProjectionMatrix(fov, aspect, clipNear, clipFar);
+    webgl.uniformMatrix4fv(ctx.uProjectionMatId, false, projectionMat);
+    webgl.viewport(0, 0, width, height);
 }
 
 /**
  * InitGL should contain the functionality that needs to be executed only once
  */
 function initGL() {
-    "use strict";
     ctx.shaderProgram = loadAndCompileShaders(gl, 'shader/VertexShader.glsl',
         'shader/FragmentShader.glsl');
     setUpAttributesAndUniforms();
     setUpScene();
     
-    gl.clearColor(0.1, 0.1, 0.1, 1);
+    gl.clearColor(renderSettings.viewPort.backgroundColor[0],
+                  renderSettings.viewPort.backgroundColor[1],
+                  renderSettings.viewPort.backgroundColor[2],
+                  renderSettings.viewPort.backgroundColor[3]);
 
-    gl.frontFace(gl.CCW); // defines how the front face is drawn
-    gl.cullFace(gl.BACK); // defines which face should be culled
-    gl.enable(gl.CULL_FACE); // enables culling
-    gl.enable(gl.DEPTH_TEST);
+    gl.frontFace(gl.CCW);       // Defines the orientation of front-faces
+    gl.cullFace(gl.BACK);       // Defines which face should be culled
+    gl.enable(gl.CULL_FACE);    // Enables culling
+    gl.enable(gl.DEPTH_TEST);   // Enable z-test
 }
 
 /**
  * Generate the projection matrix depending on the selected mode
- * @param mode Selected rendering mode. One of ortho, frustum or perspective.
- * @returns {mat4} Projection matrix
  */
-function generateProjectionMatrix(mode) {
-    "use strict";
-
+function generateProjectionMatrix(fov, aspect, near, far) {
     let mat = mat4.create();
-    let viewport = renderSettings.viewPort;
-    mat4.perspective(mat, (Math.PI / 180.0)*viewport.fovy, viewport.aspect, viewport.near, viewport.far);
+    mat4.perspective(mat, (Math.PI / 180.0)*fov, aspect, near, far);
 
     return mat;
 }
 
+/**
+ * Combine camera matrix with current transformation matrix. Model view matrix transforms model coordinates
+ * to camera coordinates.
+ */
 function generateModelViewMatrix(transformationMatrix) {
-    // Transform model coordinates into the camera coordinates
     let modelViewMat = mat4.create();
     mat4.lookAt(modelViewMat, renderSettings.camera.position, renderSettings.camera.lookAt,
         renderSettings.camera.rotation);
@@ -114,7 +151,7 @@ function generateModelViewMatrix(transformationMatrix) {
 }
 
 /**
- * Setup all the attribute and uniform variables
+ * Setup all the attribute and uniform variables.
  */
 function setUpAttributesAndUniforms(){
     "use strict";
@@ -130,12 +167,11 @@ function setUpAttributesAndUniforms(){
     ctx.uEnableLightingId = gl.getUniformLocation(ctx.shaderProgram, "uEnableLighting");
     ctx.uLightPositionId = gl.getUniformLocation(ctx.shaderProgram, "uLightPosition");
     ctx.uLightColorId = gl.getUniformLocation(ctx.shaderProgram, "uLightColor");
-
-    // Projection Matrix
-    let projectionMat = generateProjectionMatrix(renderSettings.mode);
-    gl.uniformMatrix4fv(ctx.uProjectionMatId, false, projectionMat);
 }
 
+/**
+ * Initialize texture from an image.
+ */
 function initTexture(image, textureObject) {
     // create a new texture
     gl.bindTexture(gl.TEXTURE_2D, textureObject);
@@ -150,7 +186,7 @@ function initTexture(image, textureObject) {
 }
 
 /**
- * Load an image as a texture
+ * Load an image as a texture. Works asynchronously, but returned texture can already be used.
  */
 function createTextureFromFile(filename) {
     let image = new Image();
@@ -168,8 +204,6 @@ function createTextureFromFile(filename) {
  * Setup scene.
  */
 function setUpScene(){
-    "use strict";
-
     let offset = 1;
     let translationMatrix = mat4.create();
     mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, offset, 0));
@@ -202,8 +236,6 @@ function draw() {
     gl.uniform3fv(ctx.uLightColorId, renderSettings.light.color);
 
     for (const [name, obj] of Object.entries(objects)) {
-        //console.log("Drawing", name);
-
         // Set unique ModelViewMatrix and NormalMatrix
         let modelViewMatrix = generateModelViewMatrix(obj.transform);
         gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
@@ -254,7 +286,7 @@ function drawAnimated(timeStamp) {
     draw();
 
     // request the next frame
-    if (frameCount < 0 || frameCount > 0) {
+    if (frameCount !== 0 && !tabIsInBackground) {
         window.requestAnimationFrame(drawAnimated);
         if (frameCount > 0) {
             frameCount--;
