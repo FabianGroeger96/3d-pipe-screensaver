@@ -221,6 +221,14 @@ function setUpScene(){
         model: new SolidSphere(gl, 30, 30, [0.3, 0.8, 0.3]),
         transform: translationMatrix
     }
+
+    translationMatrix = mat4.create();
+    mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, 3 * offset, 0));
+
+    objects.pipe = {
+        model: new SolidPipe(gl, 30, 30, [0.8, 0.8, 0.3]),
+        transform: translationMatrix
+    }
 }
 
 /**
