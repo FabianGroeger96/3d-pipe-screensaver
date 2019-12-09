@@ -30,10 +30,28 @@ function SolidPipe(gl, latitudeBands, longitudeBands, color) {
                 var sinPhi = Math.sin(phi);
                 var cosPhi = Math.cos(phi);
 
-                // position (and normals as it is a unit sphere)
-                var x = cosPhi;
-                var y = cosTheta;
-                var z = sinPhi;
+                if (latNumber > latitudeBands / 2) {
+                    var x = cosPhi;
+                    var y = cosTheta;
+                    var z = sinPhi;
+                } else {
+                    var x = cosPhi;
+                    var y = cosTheta;
+                    var z = sinPhi;
+
+                    var vec = vec3.create();
+                    vec[0] = x;
+                    vec[1] = y;
+                    vec[2] = z;
+
+                    var vec_rotate = vec3.create();
+                    vec3.rotateZ(vec_rotate, vec, [0, 0, 0], 80);
+
+                    //x = vec_rotate[0] + 1;
+                    x = vec_rotate[0];
+                    y = vec_rotate[1];
+                    z = vec_rotate[2];
+                }
 
                 // texture coordinates
                 var u = 1 - (longNumber / longitudeBands);
