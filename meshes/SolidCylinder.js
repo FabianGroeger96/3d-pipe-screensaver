@@ -55,7 +55,7 @@ function SolidCylinder(gl, radius, length, longitudeBands, color) {
 
     function defineIndices(longBands) {
         let indicesArray = [];
-        for (let latNumber = 0; latNumber < 4; latNumber++) {
+        for (let latNumber = 0; latNumber < 4 - 1; latNumber++) {
             for (let longNumber = 0; longNumber < longBands; longNumber++) {
                 let first = (latNumber * (longBands + 1)) + longNumber;
                 let second = first + longBands + 1;
