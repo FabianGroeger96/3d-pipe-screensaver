@@ -28,8 +28,8 @@ const ctx = {
 const renderSettings = {
     viewPort: {
         canvasId: "canvas",
-        mode: "perspective",
-        fovy: 90, // in degrees
+        mode: "perspective", // has no effect
+        fovy: 60, // in degrees
         aspect: 1,
         near: 1,
         far: 100,
@@ -220,13 +220,22 @@ function setUpScene(){
     objects.sphere = {
         model: new SolidSphere(gl, 30, 30, [0.3, 0.8, 0.3]),
         transform: translationMatrix
-    }
+    };
 
     translationMatrix = mat4.create();
     mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, 3 * offset, 0));
 
     objects.pipe = {
         model: new SolidPipe(gl, 30, 30, [0.8, 0.8, 0.3]),
+        transform: translationMatrix
+    };
+
+    translationMatrix = mat4.create();
+    mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, -3 * offset, 0));
+
+    objects.cylinder = {
+        model: new SolidCylinder(gl, 0.2, 1, 16,[0.8, 0.8, 0.3]),
+        texture: createTextureFromFile("candy_cane.png"),
         transform: translationMatrix
     }
 }
