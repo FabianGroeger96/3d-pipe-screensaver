@@ -2,7 +2,7 @@
  * Define a cylinder that can be drawn with texture or color.
  */
 function SolidCylinder(gl, radius, length, longitudeBands, color) {
-    function defineVerticesAndTexture(radius, length, longitudeBands) {
+    function defineVerticesAndTexture(rad, len, longBands) {
         let vertices = [];
         let normals = [];
         let textures = [];
@@ -17,12 +17,12 @@ function SolidCylinder(gl, radius, length, longitudeBands, color) {
             }
 
             let sinTheta = endPiece ? 0 : 1;
-            let cosTheta = (latHeight / 2) * length;
+            let cosTheta = (latHeight / 2) * len;
 
-            for (let longNumber = 0; longNumber <= longitudeBands; longNumber++) {
-                let phi = longNumber * 2 * Math.PI / longitudeBands;
-                let sinPhi = Math.sin(phi) * radius;
-                let cosPhi = Math.cos(phi) * radius;
+            for (let longNumber = 0; longNumber <= longBands; longNumber++) {
+                let phi = longNumber * 2 * Math.PI / longBands;
+                let sinPhi = Math.sin(phi) * rad;
+                let cosPhi = Math.cos(phi) * rad;
 
                 // Position
                 let x = cosPhi * sinTheta;
@@ -30,7 +30,7 @@ function SolidCylinder(gl, radius, length, longitudeBands, color) {
                 let z = sinPhi * sinTheta;
 
                 // texture coordinates
-                let u = 1 - (longNumber / longitudeBands);
+                let u = 1 - (longNumber / longBands);
                 let v = latHeight > 0 ? 1 : 0;
 
                 vertices.push(x);
@@ -53,25 +53,25 @@ function SolidCylinder(gl, radius, length, longitudeBands, color) {
         }
     }
 
-    function defineIndices(longitudeBands) {
-        let indices = [];
+    function defineIndices(longBands) {
+        let indicesArray = [];
         for (let latNumber = 0; latNumber < 4; latNumber++) {
-            for (let longNumber = 0; longNumber < longitudeBands; longNumber++) {
-                let first = (latNumber * (longitudeBands + 1)) + longNumber;
-                let second = first + longitudeBands + 1;
+            for (let longNumber = 0; longNumber < longBands; longNumber++) {
+                let first = (latNumber * (longBands + 1)) + longNumber;
+                let second = first + longBands + 1;
 
-                indices.push(first);
-                indices.push(first + 1);
-                indices.push(second);
+                indicesArray.push(first);
+                indicesArray.push(first + 1);
+                indicesArray.push(second);
 
-                indices.push(second);
-                indices.push(first + 1);
-                indices.push(second + 1);
+                indicesArray.push(second);
+                indicesArray.push(first + 1);
+                indicesArray.push(second + 1);
             }
         }
         return {
-            numberOfIndices: indices.length / 3,
-            indices: indices
+            numberOfIndices: indicesArray.length / 3,
+            indices: indicesArray
         };
     }
 
@@ -97,7 +97,7 @@ function SolidCylinder(gl, radius, length, longitudeBands, color) {
 
         // elements
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufferIndices);
-        gl.drawElements(gl.TRIANGLES, this.numberOfTriangles*3 ,gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, this.numberOfTriangles*3, gl.UNSIGNED_SHORT, 0);
 
         // disable attributes
         gl.disableVertexAttribArray(aVertexPositionId);
