@@ -51,7 +51,7 @@ var lastFrameTimestamp = 0;
 var frameCount = -1; // Limits the frames drawn
 
 // we keep all the parameters for drawing a specific object together
-var objects = { };
+var objects = {};
 
 /**
  * Startup function to be called when the body is loaded
@@ -115,11 +115,11 @@ function initGL() {
         'shader/FragmentShader.glsl');
     setUpAttributesAndUniforms();
     setUpScene();
-    
+
     gl.clearColor(renderSettings.viewPort.backgroundColor[0],
-                  renderSettings.viewPort.backgroundColor[1],
-                  renderSettings.viewPort.backgroundColor[2],
-                  renderSettings.viewPort.backgroundColor[3]);
+        renderSettings.viewPort.backgroundColor[1],
+        renderSettings.viewPort.backgroundColor[2],
+        renderSettings.viewPort.backgroundColor[3]);
 
     gl.frontFace(gl.CCW);       // Defines the orientation of front-faces
     gl.cullFace(gl.BACK);       // Defines which face should be culled
@@ -132,7 +132,7 @@ function initGL() {
  */
 function generateProjectionMatrix(fov, aspect, near, far) {
     let mat = mat4.create();
-    mat4.perspective(mat, (Math.PI / 180.0)*fov, aspect, near, far);
+    mat4.perspective(mat, (Math.PI / 180.0) * fov, aspect, near, far);
 
     return mat;
 }
@@ -153,7 +153,7 @@ function generateModelViewMatrix(transformationMatrix) {
 /**
  * Setup all the attribute and uniform variables.
  */
-function setUpAttributesAndUniforms(){
+function setUpAttributesAndUniforms() {
     "use strict";
     ctx.aVertexPositionId = gl.getAttribLocation(ctx.shaderProgram, "aVertexPosition");
     ctx.aVertexColorId = gl.getAttribLocation(ctx.shaderProgram, "aVertexColor");
@@ -203,7 +203,7 @@ function createTextureFromFile(filename) {
 /**
  * Setup scene.
  */
-function setUpScene(){
+function setUpScene() {
     let offset = 1;
     let translationMatrix = mat4.create();
     mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, offset, 0));
@@ -226,7 +226,7 @@ function setUpScene(){
     mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, 3 * offset, 0));
 
     objects.pipe = {
-        model: new SolidPipe(gl, 30, 30, [0.8, 0.8, 0.3]),
+        model: new SolidPipe(gl, 0.2, 1, 30, 30, [0.8, 0.8, 0.3]),
         transform: translationMatrix
     };
 
@@ -234,7 +234,7 @@ function setUpScene(){
     mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, -3 * offset, 0));
 
     objects.cylinder = {
-        model: new SolidCylinder(gl, 0.2, 1, 16,[0.8, 0.8, 0.3]),
+        model: new SolidCylinder(gl, 0.2, 1, 16, [0.8, 0.8, 0.3]),
         texture: createTextureFromFile("candy_cane.png"),
         transform: translationMatrix
     }
@@ -321,7 +321,7 @@ const key = {
     DOWN: 40
 };
 
-function isDown (keyCode) {
+function isDown(keyCode) {
     return key._pressed[keyCode];
 }
 

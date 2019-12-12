@@ -1,68 +1,44 @@
 /**
- *
- * Define a pipe that can be drawn with texture or color.
+ * Define a cylinder that can be drawn with texture or color.
  */
+function SolidPipe(gl, radius, length, longitudeBands, latitudeBands, color) {
+    function defineVerticesAndTexture(rad, len, longBands, latBands) {
+        let vertices = [];
+        let normals = [];
+        let textures = [];
 
-/**
- *
- * @param gl the gl object for which to define the sphere
- * @param latitudeBands the number of bands along the latitude direction
- * @param longitudeBands the number of bands along the longitude direction
- * @param color the color of the sphere
- *
- */
-function SolidPipe(gl, latitudeBands, longitudeBands, color) {
+        for (let latNumber = 0; latNumber <= latBands; latNumber++) {
+            let endPiece = latNumber === 0 || latNumber === latBands;
+            let latHeight = 0;
+            if (latNumber < latBands / 2) {
+                latHeight = 1;
+            } else {
+                latHeight = -1;
+            }
 
-    function defineVerticesAndTexture(latitudeBands, longitudeBands) {
-        "use strict";
-        // define the vertices of the sphere
-        var vertices = [];
-        var normals = [];
-        var textures = [];
+            let sinTheta = endPiece ? 0 : 1;
+            let cosTheta = (latHeight / 2) * len;
 
-        for (var latNumber = 0; latNumber <= latitudeBands; latNumber++) {
-            var theta = latNumber * Math.PI / latitudeBands;
-            var sinTheta = Math.sin(theta);
-            var cosTheta = Math.cos(theta);
+            for (let longNumber = 0; longNumber <= longBands; longNumber++) {
+                let phi = longNumber * 2 * Math.PI / longBands;
+                let sinPhi = Math.sin(phi) * rad;
+                let cosPhi = Math.cos(phi) * rad;
 
-            for (var longNumber = 0; longNumber <= longitudeBands; longNumber++) {
-                var phi = longNumber * 2 * Math.PI / longitudeBands;
-                var sinPhi = Math.sin(phi);
-                var cosPhi = Math.cos(phi);
-
-                if (latNumber > latitudeBands / 2) {
-                    var x = cosPhi;
-                    var y = cosTheta;
-                    var z = sinPhi;
-                } else {
-                    var x = cosPhi;
-                    var y = cosTheta;
-                    var z = sinPhi;
-
-                    var vec = vec3.create();
-                    vec[0] = x;
-                    vec[1] = y;
-                    vec[2] = z;
-
-                    var vec_rotate = vec3.create();
-                    vec3.rotateZ(vec_rotate, vec, [0, 0, 0], 80);
-
-                    //x = vec_rotate[0] + 1;
-                    x = vec_rotate[0];
-                    y = vec_rotate[1];
-                    z = vec_rotate[2];
-                }
+                // Position
+                let x = cosPhi * sinTheta;
+                let y = cosTheta;
+                let z = sinPhi * sinTheta;
 
                 // texture coordinates
-                var u = 1 - (longNumber / longitudeBands);
-                var v = 1 - (latNumber / latitudeBands);
+                let u = 1 - (longNumber / longBands);
+                let v = latHeight > 0 ? 1 : 0;
 
                 vertices.push(x);
                 vertices.push(y);
                 vertices.push(z);
 
                 normals.push(x);
-                normals.push(y);
+                normals.push(endPiece ? latHeight : 0); // Normal correction
                 normals.push(z);
 
                 textures.push(u);
@@ -70,34 +46,36 @@ function SolidPipe(gl, latitudeBands, longitudeBands, color) {
             }
         }
         return {
+            numberOfVertices: vertices.length / 3,
             vertices: vertices,
             normals: normals,
             textures: textures
         }
     }
 
-    function defineIndices(latitudeBands, longitudeBands) {
-        var indices = [];
-        for (var latNumber = 0; latNumber < latitudeBands; latNumber++) {
-            for (var longNumber = 0; longNumber < longitudeBands; longNumber++) {
-                var first = (latNumber * (longitudeBands + 1)) + longNumber;
-                var second = first + longitudeBands + 1;
+    function defineIndices(longBands, latBands) {
+        let indicesArray = [];
+        for (let latNumber = 0; latNumber < latBands; latNumber++) {
+            for (let longNumber = 0; longNumber < longBands; longNumber++) {
+                let first = (latNumber * (longBands + 1)) + longNumber;
+                let second = first + longBands + 1;
 
-                indices.push(first);
-                indices.push(first + 1);
-                indices.push(second);
+                indicesArray.push(first);
+                indicesArray.push(first + 1);
+                indicesArray.push(second);
 
-                indices.push(second);
-                indices.push(first + 1);
-                indices.push(second + 1);
+                indicesArray.push(second);
+                indicesArray.push(first + 1);
+                indicesArray.push(second + 1);
             }
         }
-        return indices;
+        return {
+            numberOfIndices: indicesArray.length / 3,
+            indices: indicesArray
+        };
     }
 
-    function draw(gl, aVertexPositionId, aVertexColorId, aTextureCoordsId, aVertexNormalId) {
-        "use strict";
-
+    function draw(gl, aVertexPositionId, aVertexColorId, aVertexTextureCoordId, aVertexNormalId) {
         // position
         gl.bindBuffer(gl.ARRAY_BUFFER, this.bufferVertices);
         gl.vertexAttribPointer(aVertexPositionId, 3, gl.FLOAT, false, 0, 0);
@@ -112,8 +90,13 @@ function SolidPipe(gl, latitudeBands, longitudeBands, color) {
         gl.vertexAttribPointer(aVertexNormalId, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(aVertexNormalId);
 
+        // Set texture coordinates
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.bufferTextures);
+        gl.vertexAttribPointer(aVertexTextureCoordId, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(aVertexTextureCoordId);
+
         // elements
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pipe.bufferIndices);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufferIndices);
         gl.drawElements(gl.TRIANGLES, this.numberOfTriangles * 3, gl.UNSIGNED_SHORT, 0);
 
         // disable attributes
@@ -121,10 +104,10 @@ function SolidPipe(gl, latitudeBands, longitudeBands, color) {
         gl.disableVertexAttribArray(aVertexNormalId);
     }
 
-    var verticesAndTextures = defineVerticesAndTexture(latitudeBands, longitudeBands);
-    var indices = defineIndices(latitudeBands, longitudeBands);
+    let verticesAndTextures = defineVerticesAndTexture(radius, length, longitudeBands, longitudeBands);
+    let indices = defineIndices(longitudeBands, longitudeBands);
 
-    var pipe = {};
+    let pipe = {};
 
     pipe.bufferVertices = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, pipe.bufferVertices);
@@ -141,9 +124,9 @@ function SolidPipe(gl, latitudeBands, longitudeBands, color) {
 
     pipe.bufferIndices = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pipe.bufferIndices);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices.indices), gl.STATIC_DRAW);
 
-    pipe.numberOfTriangles = latitudeBands * longitudeBands * 2;
+    pipe.numberOfTriangles = indices.numberOfIndices;
     pipe.color = color;
     pipe.draw = draw;
     return pipe;

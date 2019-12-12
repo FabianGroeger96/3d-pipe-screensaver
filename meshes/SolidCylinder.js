@@ -97,7 +97,7 @@ function SolidCylinder(gl, radius, length, longitudeBands, color) {
 
         // elements
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufferIndices);
-        gl.drawElements(gl.TRIANGLES, this.numberOfTriangles*3, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, this.numberOfTriangles * 3, gl.UNSIGNED_SHORT, 0);
 
         // disable attributes
         gl.disableVertexAttribArray(aVertexPositionId);
@@ -109,7 +109,7 @@ function SolidCylinder(gl, radius, length, longitudeBands, color) {
 
     let cylinder = {};
 
-    cylinder.bufferVertices  = gl.createBuffer();
+    cylinder.bufferVertices = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, cylinder.bufferVertices);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verticesAndTextures.vertices), gl.STATIC_DRAW);
 
