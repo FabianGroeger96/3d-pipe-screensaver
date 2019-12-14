@@ -1,23 +1,22 @@
 /**
  * Define a cylinder that can be drawn with texture or color.
  */
-
-function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wireframe = false) {
+function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wireframe = false, curveRadius = 0.5, curveAngle = Math.PI / 2) {
     function changeColor(color){
         this.color = color;
     }
 
-    function defineVerticesAndTexture(rad, len, latBands, longBands) {
+    function defineVerticesAndTexture(rad, len, latBands, longBands, curveRad, curveAng) {
         let vertices = [];
         let normals = [];
         let textures = [];
 
-        let curveRadius = 0.5; // between 0 and 1
-        let curveAngle = Math.PI / 2;
+        //let curveRadius = 0.5; // between 0 and 1
+        //let curveAngle = Math.PI / 2;
 
         let deflectionMat = mat4.create();
 
-        let sectionDistance = (2 - 2 * curveRadius) / (latBands - 4);
+        let sectionDistance = (2 - 2 * (1 - curveRad)) / (latBands - 4);
         let ringCoordinates = [];
 
         for (let longNumber = 0; longNumber <= longBands; longNumber++) {
@@ -32,11 +31,11 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
         let distanceToNextRing = [];
         distanceToNextRing.push(0);
         distanceToNextRing.push(0);
-        distanceToNextRing.push(curveRadius);
+        distanceToNextRing.push(1 - curveRad);
         for (let i = 0; i < latBands + 1 - 5; i++) {
             distanceToNextRing.push(sectionDistance);
         }
-        distanceToNextRing.push(curveRadius);
+        distanceToNextRing.push(1 - curveRad);
         distanceToNextRing.push(0);
 
         for (let i = 0; i < distanceToNextRing.length; i++) {
@@ -46,12 +45,15 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
         let direction = vec3.fromValues(0, 1, 0);
         let lastPoint = vec3.fromValues(0, -(len / 2), 0);
 
+        let vSum = 0;
+
         for (let latNumber = 0; latNumber <= latBands; latNumber++) {
             let endPiece = latNumber === 0 || latNumber === latBands;
+            vSum += distanceToNextRing[latNumber];
 
             // Update deflectionMat
             if (latNumber === 3) {
-                mat4.fromZRotation(deflectionMat, curveAngle / (latBands + 1 - 5));
+                mat4.fromZRotation(deflectionMat, curveAng / (latBands + 1 - 5));
             } else if (latNumber === latBands - 1) {
                 mat4.identity(deflectionMat);
             }
@@ -101,8 +103,8 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
                 }
 
                 let u = 1 - (longNumber / longBands);
-                let v = newPoint[1] + (len / 2);
-
+                let v = vSum;
+                
                 textures.push(u);
                 textures.push(v);
             }
@@ -192,7 +194,8 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
         gl.disableVertexAttribArray(aVertexNormalId);
     }
 
-    let verticesAndTextures = defineVerticesAndTexture(radius, length, latitudeBands, longitudeBands);
+    let verticesAndTextures = defineVerticesAndTexture(radius, length, latitudeBands, longitudeBands,
+        curveRadius, curveAngle);
     let indices;
     if (!wireframe) {
         indices = defineIndices(latitudeBands, longitudeBands);
