@@ -154,7 +154,6 @@ function generateModelViewMatrix(transformationMatrix) {
  * Setup all the attribute and uniform variables.
  */
 function setUpAttributesAndUniforms() {
-    "use strict";
     ctx.aVertexPositionId = gl.getAttribLocation(ctx.shaderProgram, "aVertexPosition");
     ctx.aVertexColorId = gl.getAttribLocation(ctx.shaderProgram, "aVertexColor");
     ctx.aTextureCoordId = gl.getAttribLocation(ctx.shaderProgram, "aTextureCoord");
@@ -228,6 +227,7 @@ function setUpScene() {
     objects.pipe = {
         model: new SolidCurve(gl, 0.2, 1, 30, 30, [0.8, 0.8, 0.3],
             false, 0.5, Math.PI / 2),
+        texture: createTextureFromFile("candy_cane.png"),
         transform: translationMatrix
     };
 
@@ -245,7 +245,6 @@ function setUpScene() {
  * Draw the scene.
  */
 function draw() {
-    "use strict";
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
