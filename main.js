@@ -269,8 +269,7 @@ function setUpScene() {
     pipes_appearances = getAppearances(pipes.length);
     let offset = 1;
     objects.sphere = {
-        model: new SolidSphere(gl, 30, 30, [0.3, 0.8, 0.3]),
-        transform: -1
+        model: new SolidSphere(gl, 0.25, 30, 30, [0.3, 0.8, 0.3])
     };
 
     objects.pipe = {
