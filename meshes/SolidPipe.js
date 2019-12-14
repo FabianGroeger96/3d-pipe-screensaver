@@ -1,50 +1,107 @@
 /**
  * Define a cylinder that can be drawn with texture or color.
  */
-function SolidPipe(gl, radius, length, longitudeBands, latitudeBands, color) {
 
+function SolidPipe(gl, radius, length, latitudeBands, longitudeBands, color, wireframe = false) {
     function changeColor(color){
         this.color = color;
     }
 
-    function defineVerticesAndTexture(rad, len, longBands, latBands) {
+    function defineVerticesAndTexture(rad, len, latBands, longBands) {
         let vertices = [];
         let normals = [];
         let textures = [];
 
+        let curveRadius = 0.5; // between 0 and 1
+        let curveAngle = Math.PI / 2;
+
+        let deflectionMat = mat4.create();
+
+        let sectionDistance = (2 - 2 * curveRadius) / (latBands - 4);
+        let ringCoordinates = [];
+
+        for (let longNumber = 0; longNumber <= longBands; longNumber++) {
+            let phi = longNumber * 2 * Math.PI / longBands;
+
+            let sinPhi = Math.sin(phi) * rad;
+            let cosPhi = Math.cos(phi) * rad;
+
+            ringCoordinates = ringCoordinates.concat(vec3.fromValues(cosPhi, 0, sinPhi));
+        }
+
+        let distanceToNextRing = [];
+        distanceToNextRing.push(0);
+        distanceToNextRing.push(0);
+        distanceToNextRing.push(curveRadius);
+        for (let i = 0; i < latBands + 1 - 5; i++) {
+            distanceToNextRing.push(sectionDistance);
+        }
+        distanceToNextRing.push(curveRadius);
+        distanceToNextRing.push(0);
+
+        for (let i = 0; i < distanceToNextRing.length; i++) {
+            distanceToNextRing[i] = (distanceToNextRing[i] / 2) * len;
+        }
+
+        let direction = vec3.fromValues(0, 1, 0);
+        let lastPoint = vec3.fromValues(0, -(len / 2), 0);
+
         for (let latNumber = 0; latNumber <= latBands; latNumber++) {
             let endPiece = latNumber === 0 || latNumber === latBands;
-            let latHeight = 0;
-            if (latNumber < latBands / 2) {
-                latHeight = 1;
-            } else {
-                latHeight = -1;
+
+            // Update deflectionMat
+            if (latNumber === 3) {
+                mat4.fromZRotation(deflectionMat, curveAngle / (latBands + 1 - 5));
+            } else if (latNumber === latBands - 1) {
+                mat4.identity(deflectionMat);
             }
 
-            let sinTheta = endPiece ? 0 : 1;
-            let cosTheta = (latHeight / 2) * len;
+            // Determine the new direction
+            vec3.transformMat4(direction, direction, deflectionMat);
+            let newDirection = vec3.clone(direction);
+            vec3.scale(newDirection, newDirection, distanceToNextRing[latNumber]);
 
+            let newPoint = vec3.clone(lastPoint);
+            vec3.add(newPoint, newPoint, newDirection);
+
+            lastPoint = newPoint;
+
+            let vec;
             for (let longNumber = 0; longNumber <= longBands; longNumber++) {
-                let phi = longNumber * 2 * Math.PI / longBands;
-                let sinPhi = Math.sin(phi) * rad;
-                let cosPhi = Math.cos(phi) * rad;
+                vec = vec3.clone(newPoint);
+                if (!endPiece) {
+                    let ringCoord = ringCoordinates[longNumber];
+                    vec3.transformMat4(ringCoord, ringCoord, deflectionMat);
+                    vec3.add(vec, vec, ringCoord);
+                }
 
-                // Position
-                let x = cosPhi * sinTheta;
-                let y = cosTheta;
-                let z = sinPhi * sinTheta;
+                // Add vertices, normals and texture coordinates
+                vertices.push(vec[0]);
+                vertices.push(vec[1]);
+                vertices.push(vec[2]);
 
-                // texture coordinates
+                if (!endPiece) {
+                    normals.push(vec[0]);
+                    normals.push(vec[1]);
+                    normals.push(vec[2]);
+                } else {
+                    if (latNumber < latBands / 2) {
+                        normals.push(0);
+                        normals.push(-1);
+                        normals.push(0);
+                    } else {
+                        let normalVec = vec3.fromValues(0, 1, 0);
+                        let rotMat = mat4.create();
+                        mat4.fromZRotation(rotMat, curveAngle);
+                        vec3.transformMat4(normalVec, normalVec, rotMat);
+                        normals.push(normalVec[0]);
+                        normals.push(normalVec[1]);
+                        normals.push(normalVec[2]);
+                    }
+                }
+
                 let u = 1 - (longNumber / longBands);
-                let v = latHeight > 0 ? 1 : 0;
-
-                vertices.push(x);
-                vertices.push(y);
-                vertices.push(z);
-
-                normals.push(x);
-                normals.push(endPiece ? latHeight : 0); // Normal correction
-                normals.push(z);
+                let v = newPoint[1] + (len / 2);
 
                 textures.push(u);
                 textures.push(v);
@@ -58,7 +115,29 @@ function SolidPipe(gl, radius, length, longitudeBands, latitudeBands, color) {
         }
     }
 
-    function defineIndices(longBands, latBands) {
+    function defineIndices(latBands, longBands) {
+        let indicesArray = [];
+        for (let latNumber = 0; latNumber < latBands; latNumber++) {
+            for (let longNumber = 0; longNumber < longBands; longNumber++) {
+                let first = (latNumber * (longBands + 1)) + longNumber;
+                let second = first + longBands + 1;
+
+                indicesArray.push(first + 1);
+                indicesArray.push(first);
+                indicesArray.push(second);
+
+                indicesArray.push(first + 1);
+                indicesArray.push(second);
+                indicesArray.push(second + 1);
+            }
+        }
+        return {
+            numberOfIndices: indicesArray.length / 3,
+            indices: indicesArray
+        };
+    }
+
+    function defineWireframeIndices(latBands, longBands) {
         let indicesArray = [];
         for (let latNumber = 0; latNumber < latBands; latNumber++) {
             for (let longNumber = 0; longNumber < longBands; longNumber++) {
@@ -66,16 +145,16 @@ function SolidPipe(gl, radius, length, longitudeBands, latitudeBands, color) {
                 let second = first + longBands + 1;
 
                 indicesArray.push(first);
-                indicesArray.push(first + 1);
+                //indicesArray.push(first + 1);
                 indicesArray.push(second);
 
                 indicesArray.push(second);
-                indicesArray.push(first + 1);
+                //indicesArray.push(first + 1);
                 indicesArray.push(second + 1);
             }
         }
         return {
-            numberOfIndices: indicesArray.length / 3,
+            numberOfIndices: indicesArray.length / 2,
             indices: indicesArray
         };
     }
@@ -102,15 +181,24 @@ function SolidPipe(gl, radius, length, longitudeBands, latitudeBands, color) {
 
         // elements
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bufferIndices);
-        gl.drawElements(gl.TRIANGLES, this.numberOfTriangles * 3, gl.UNSIGNED_SHORT, 0);
+        if (!wireframe) {
+            gl.drawElements(gl.TRIANGLES, this.numberOfPrimitives * 3, gl.UNSIGNED_SHORT, 0);
+        } else {
+            gl.drawElements(gl.LINES, this.numberOfPrimitives * 2, gl.UNSIGNED_SHORT, 0);
+        }
 
         // disable attributes
         gl.disableVertexAttribArray(aVertexPositionId);
         gl.disableVertexAttribArray(aVertexNormalId);
     }
 
-    let verticesAndTextures = defineVerticesAndTexture(radius, length, longitudeBands, longitudeBands);
-    let indices = defineIndices(longitudeBands, longitudeBands);
+    let verticesAndTextures = defineVerticesAndTexture(radius, length, latitudeBands, longitudeBands);
+    let indices;
+    if (!wireframe) {
+        indices = defineIndices(latitudeBands, longitudeBands);
+    } else {
+        indices = defineWireframeIndices(latitudeBands, longitudeBands);
+    }
 
     let pipe = {};
 
@@ -131,7 +219,7 @@ function SolidPipe(gl, radius, length, longitudeBands, latitudeBands, color) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pipe.bufferIndices);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices.indices), gl.STATIC_DRAW);
 
-    pipe.numberOfTriangles = indices.numberOfIndices;
+    pipe.numberOfPrimitives = indices.numberOfIndices;
     pipe.color = color;
     pipe.draw = draw;
     pipe.changeColor = changeColor;

@@ -2,6 +2,10 @@
  * Define a cylinder that can be drawn with texture or color.
  */
 function SolidCylinder(gl, radius, length, longitudeBands, color) {
+    function changeColor(color){
+        this.color = color;
+    }
+
     function defineVerticesAndTexture(rad, len, longBands) {
         let vertices = [];
         let normals = [];
@@ -130,5 +134,6 @@ function SolidCylinder(gl, radius, length, longitudeBands, color) {
     cylinder.numberOfTriangles = indices.numberOfIndices;
     cylinder.color = color;
     cylinder.draw = draw;
+    cylinder.changeColor = changeColor;
     return cylinder;
 }

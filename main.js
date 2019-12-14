@@ -243,7 +243,7 @@ function setUpScene() {
     };
 
     objects.pipe = {
-        model: new SolidPipe(gl, 0.5, 1, 30, 30, [0.8, 0.8, 0.3]),
+        model: new SolidCylinder(gl, 0.2, 1, 10, 20, [0.8, 0.8, 0.3]),
         transform: -1
     };
 
