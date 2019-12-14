@@ -31,6 +31,12 @@ const ctx = {
     uLightColorId: -1
 };
 
+const gridSettings = {
+    size: vec3.fromValues(20, 20, 20),
+    numberOfPipes: 1,
+    steps: 200
+};
+
 // defines all the render settings
 const renderSettings = {
     viewPort: {
@@ -39,16 +45,16 @@ const renderSettings = {
         fovy: 60, // in degrees
         aspect: 1,
         near: 1,
-        far: 100,
+        far: 500,
         backgroundColor: vec4.fromValues(0.1, 0.1, 0.1, 1)
     },
     camera: {
-        position: vec3.fromValues(-5, 0, 0),
+        position: vec3.fromValues(-(gridSettings.size[0] / 2) * 3, 0.0, 0.0),
         lookAt: vec3.fromValues(0.0, 0.0, 0.0),
         rotation: vec3.fromValues(0.0, 0.0, 1)
     },
     light: {
-        position: vec3.fromValues(0, 2, 0),
+        position: vec3.fromValues(0, 0, gridSettings.size[2] / 2),
         color: vec3.fromValues(1, 1, 1)
     }
 };
@@ -59,37 +65,6 @@ var frameCount = -1; // Limits the frames drawn
 
 // we keep all the parameters for drawing a specific object together
 var objects = {};
-
-function drawEdges() {
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.uniform1i(ctx.uEnableLightingId, 1);
-    gl.uniform3fv(ctx.uLightPositionId, renderSettings.light.position);
-    gl.uniform3fv(ctx.uLightColorId, renderSettings.light.color);
-    let coords = [
-        [0, 0, 0],
-        [99, 0, 0],
-        [99, 99, 0],
-        [0, 99, 0],
-        [0, 0, 99],
-        [99, 0, 99],
-        [99, 99, 99],
-        [0, 99, 99]];
-    for (var i = 0; i < coords.length; i++){
-        let translationMatrix = mat4.create();
-        mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(coords[i][0], coords[i][1], coords[i][2]));
-        let obj = objects.sphere;
-        obj.transform = translationMatrix;
-        let modelViewMatrix = generateModelViewMatrix(obj.transform);
-        gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
-        let normalMatrix = mat3.create();
-        mat3.normalFromMat4(normalMatrix, modelViewMatrix);
-        gl.uniformMatrix3fv(ctx.uNormalMatId, false, normalMatrix);
-        obj.model.changeColor([1, 1, 1]);
-        gl.uniform1i(ctx.uEnableTextureId, 0);
-        obj.model.draw(gl, ctx.aVertexPositionId, ctx.aVertexColorId, ctx.aTextureCoordId, ctx.aVertexNormalId);
-    }
-}
 
 /**
  * Startup function to be called when the body is loaded
@@ -106,8 +81,7 @@ function startup() {
     window.addEventListener("resize", resizeWindow, false);
     window.addEventListener("visibilityChange", handleVisibilityChange, false);
 
-    //drawAnimated(0);
-    drawEdges();
+    drawAnimated(0);
 }
 
 /**
@@ -192,7 +166,6 @@ function generateModelViewMatrix(transformationMatrix) {
  * Setup all the attribute and uniform variables.
  */
 function setUpAttributesAndUniforms() {
-    "use strict";
     ctx.aVertexPositionId = gl.getAttribLocation(ctx.shaderProgram, "aVertexPosition");
     ctx.aVertexColorId = gl.getAttribLocation(ctx.shaderProgram, "aVertexColor");
     ctx.aTextureCoordId = gl.getAttribLocation(ctx.shaderProgram, "aTextureCoord");
@@ -239,10 +212,10 @@ function createTextureFromFile(filename) {
 }
 
 function getAppearances(length) {
-    appearances = [];
+    let appearances = [];
     for (var i = 0; i < length; i++){
         let random = getRandomInt(2);
-        if (random === 0){
+        if (random === 0) {
             let appearance = [0, getRandomInt(255) / 255,
                                 getRandomInt(255) / 255,
                                 getRandomInt(255) / 255];
@@ -261,60 +234,52 @@ function getAppearances(length) {
  * Setup scene.
  */
 function setUpScene() {
-    pipes = getPaths([100, 100, 100], 1000, 1);
+    pipes = getPaths(gridSettings.size, gridSettings.steps, gridSettings.numberOfPipes);
     pipes_step = 0;
     textures = [];
     textures.push(createTextureFromFile("candy_cane.png"));
     textures.push(createTextureFromFile("knitting_pattern.png"));
     pipes_appearances = getAppearances(pipes.length);
-    let offset = 1;
+
     objects.sphere = {
         model: new SolidSphere(gl, 0.25, 30, 30, [0.3, 0.8, 0.3])
     };
 
     objects.pipe = {
-        model: new SolidPipe(gl, 0.2, 1, 10, 20, [0.8, 0.8, 0.3]),
-        transform: -1
+        model: new SolidPipe(gl, 0.2, 1, 10, 20, [0.8, 0.8, 0.3])
     };
-
 }
 
 /**
  * Draw the scene.
  */
-function draw() {
-    "use strict";
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.uniform1i(ctx.uEnableLightingId, 1);
-    gl.uniform3fv(ctx.uLightPositionId, renderSettings.light.position);
-    gl.uniform3fv(ctx.uLightColorId, renderSettings.light.color);
-    for (var i = 0; i < pipes.length; i++){
+function drawPath() {
+    for (let i = 0; i < pipes.length; i++){
         let pipe = pipes[i];
-        for (var j = 0; j < pipes_step && j < pipe.length; j++){
+        for (let j = 0; j < pipes_step && j < pipe.length; j++){
             let element = pipe[j];
             let coords = element[0];
             let drawedObjNumber = element[1];
-            let translationMatrix = mat4.create();
+            let transformationMatrix = mat4.create();
+            mat4.fromTranslation(transformationMatrix, [-gridSettings.size[0] / 2, -gridSettings.size[1] / 2, -gridSettings.size[2] / 2]);
             let obj = -1;
             if (drawedObjNumber !== -1) {
-                mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(coords[0], coords[1], coords[2]));
+                mat4.translate(transformationMatrix, transformationMatrix, vec3.fromValues(coords[0], coords[1], coords[2]));
                 if (drawedObjNumber === 0) {
                     obj = objects.pipe;
-                    mat4.rotateZ(translationMatrix, translationMatrix, 90 * (Math.PI / 180.0));
+                    mat4.rotateZ(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
                 }
                 if (drawedObjNumber === 1) {
                     obj = objects.pipe;
                 }
                 if (drawedObjNumber === 2) {
                     obj = objects.pipe;
-                    mat4.rotateX(translationMatrix, translationMatrix, 90 * (Math.PI / 180.0));
+                    mat4.rotateX(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
                 }
                 if (drawedObjNumber === 3) {
                     obj = objects.sphere;
                 }
-                obj.transform = translationMatrix;
-                let modelViewMatrix = generateModelViewMatrix(obj.transform);
+                let modelViewMatrix = generateModelViewMatrix(transformationMatrix);
                 gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
                 let normalMatrix = mat3.create();
                 mat3.normalFromMat4(normalMatrix, modelViewMatrix);
@@ -335,31 +300,47 @@ function draw() {
             }
         }
     }
+}
 
-/*
-    for (const [name, obj] of Object.entries(objects)) {
-        // Set unique ModelViewMatrix and NormalMatrix
-        let modelViewMatrix = generateModelViewMatrix(obj.transform);
+function drawEdges() {
+    let offX = gridSettings.size[0] / 2;
+    let offY = gridSettings.size[1] / 2;
+    let offZ = gridSettings.size[2] / 2;
+
+    let coords = [
+        [-offX, -offY, -offZ],
+        [-offX, -offY, offZ],
+        [-offX, offY, -offZ],
+        [-offX, offY, offZ],
+        [offX, -offY, -offZ],
+        [offX, -offY, offZ],
+        [offX, offY, -offZ],
+        [offX, offY, offZ]
+    ];
+    for (var i = 0; i < coords.length; i++) {
+        let transformationMatrix = mat4.create();
+        mat4.fromTranslation(transformationMatrix, vec3.fromValues(coords[i][0], coords[i][1], coords[i][2]));
+        let obj = objects.sphere;
+        let modelViewMatrix = generateModelViewMatrix(transformationMatrix);
         gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
         let normalMatrix = mat3.create();
         mat3.normalFromMat4(normalMatrix, modelViewMatrix);
         gl.uniformMatrix3fv(ctx.uNormalMatId, false, normalMatrix);
-
-        // Enable or disable textures
-        if (obj.texture) {
-            gl.uniform1i(ctx.uEnableTextureId, 1);
-
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, obj.texture);
-            gl.uniform1i(ctx.uSampler2DId, 0);
-        } else {
-            gl.uniform1i(ctx.uEnableTextureId, 0);
-        }
-
-        // Draw the object
+        obj.model.changeColor([1, 1, 1]);
+        gl.uniform1i(ctx.uEnableTextureId, 0);
         obj.model.draw(gl, ctx.aVertexPositionId, ctx.aVertexColorId, ctx.aTextureCoordId, ctx.aVertexNormalId);
     }
-    */
+}
+
+function draw() {
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.uniform1i(ctx.uEnableLightingId, 1);
+    gl.uniform3fv(ctx.uLightPositionId, renderSettings.light.position);
+    gl.uniform3fv(ctx.uLightColorId, renderSettings.light.color);
+
+    drawEdges();
+    drawPath();
 }
 
 function drawAnimated(timeStamp) {
