@@ -45,7 +45,7 @@ const renderSettings = {
     camera: {
         position: vec3.fromValues(-5, 0, 0),
         lookAt: vec3.fromValues(0, 0, 0),
-        rotation: vec3.fromValues(0, 0, 1)
+        rotation: vec3.fromValues(0.0, 0.0, 1)
     },
     light: {
         position: vec3.fromValues(0, 2, 0),
@@ -59,6 +59,32 @@ var frameCount = -1; // Limits the frames drawn
 
 // we keep all the parameters for drawing a specific object together
 var objects = {};
+
+function drawEdges() {
+        let coords = [
+            [0, 0, 0],
+            [99, 0, 0],
+            [99, 99, 0],
+            [0, 99, 0],
+            [0, 0, 99],
+            [99, 0, 99],
+            [99, 99, 99],
+            [0, 99, 99]];
+        for (var i = 0; i < coords.length; i++){
+            let translationMatrix = mat4.create();
+            mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(coords[i][0], coords[i][1], coords[i][2]));
+            let obj = objects.sphere;
+            obj.transform = translationMatrix;
+            let modelViewMatrix = generateModelViewMatrix(obj.transform);
+            gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
+            let normalMatrix = mat3.create();
+            mat3.normalFromMat4(normalMatrix, modelViewMatrix);
+            gl.uniformMatrix3fv(ctx.uNormalMatId, false, normalMatrix);
+            obj.model.changeColor([0.5, 0.5, 0.5]);
+            gl.uniform1i(ctx.uEnableTextureId, 0);
+            obj.model.draw(gl, ctx.aVertexPositionId, ctx.aVertexColorId, ctx.aTextureCoordId, ctx.aVertexNormalId);
+        }
+}
 
 /**
  * Startup function to be called when the body is loaded
@@ -75,7 +101,8 @@ function startup() {
     window.addEventListener("resize", resizeWindow, false);
     window.addEventListener("visibilityChange", handleVisibilityChange, false);
 
-    drawAnimated(0);
+    //drawAnimated(0);
+    drawEdges();
 }
 
 /**
@@ -106,7 +133,6 @@ function resizeWindow() {
 function setUpViewport(webgl, canvas, projectionMatrixId, width, height, fov, clipNear, clipFar) {
     canvas.width = width;
     canvas.height = height;
-
     let aspect = width / height;
     renderSettings.viewPort.aspect = aspect;
     let projectionMat = generateProjectionMatrix(fov, aspect, clipNear, clipFar);
