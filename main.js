@@ -44,7 +44,7 @@ const renderSettings = {
     },
     camera: {
         position: vec3.fromValues(-5, 0, 0),
-        lookAt: vec3.fromValues(0, 0, 0),
+        lookAt: vec3.fromValues(0.0, 0.0, 0.0),
         rotation: vec3.fromValues(0.0, 0.0, 1)
     },
     light: {
@@ -61,29 +61,34 @@ var frameCount = -1; // Limits the frames drawn
 var objects = {};
 
 function drawEdges() {
-        let coords = [
-            [0, 0, 0],
-            [99, 0, 0],
-            [99, 99, 0],
-            [0, 99, 0],
-            [0, 0, 99],
-            [99, 0, 99],
-            [99, 99, 99],
-            [0, 99, 99]];
-        for (var i = 0; i < coords.length; i++){
-            let translationMatrix = mat4.create();
-            mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(coords[i][0], coords[i][1], coords[i][2]));
-            let obj = objects.sphere;
-            obj.transform = translationMatrix;
-            let modelViewMatrix = generateModelViewMatrix(obj.transform);
-            gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
-            let normalMatrix = mat3.create();
-            mat3.normalFromMat4(normalMatrix, modelViewMatrix);
-            gl.uniformMatrix3fv(ctx.uNormalMatId, false, normalMatrix);
-            obj.model.changeColor([0.5, 0.5, 0.5]);
-            gl.uniform1i(ctx.uEnableTextureId, 0);
-            obj.model.draw(gl, ctx.aVertexPositionId, ctx.aVertexColorId, ctx.aTextureCoordId, ctx.aVertexNormalId);
-        }
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.uniform1i(ctx.uEnableLightingId, 1);
+    gl.uniform3fv(ctx.uLightPositionId, renderSettings.light.position);
+    gl.uniform3fv(ctx.uLightColorId, renderSettings.light.color);
+    let coords = [
+        [0, 0, 0],
+        [99, 0, 0],
+        [99, 99, 0],
+        [0, 99, 0],
+        [0, 0, 99],
+        [99, 0, 99],
+        [99, 99, 99],
+        [0, 99, 99]];
+    for (var i = 0; i < coords.length; i++){
+        let translationMatrix = mat4.create();
+        mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(coords[i][0], coords[i][1], coords[i][2]));
+        let obj = objects.sphere;
+        obj.transform = translationMatrix;
+        let modelViewMatrix = generateModelViewMatrix(obj.transform);
+        gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
+        let normalMatrix = mat3.create();
+        mat3.normalFromMat4(normalMatrix, modelViewMatrix);
+        gl.uniformMatrix3fv(ctx.uNormalMatId, false, normalMatrix);
+        obj.model.changeColor([1, 1, 1]);
+        gl.uniform1i(ctx.uEnableTextureId, 0);
+        obj.model.draw(gl, ctx.aVertexPositionId, ctx.aVertexColorId, ctx.aTextureCoordId, ctx.aVertexNormalId);
+    }
 }
 
 /**
