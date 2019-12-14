@@ -2,6 +2,11 @@
  * Define a cylinder that can be drawn with texture or color.
  */
 function SolidPipe(gl, radius, length, longitudeBands, latitudeBands, color) {
+
+    function changeColor(color){
+        this.color = color;
+    }
+
     function defineVerticesAndTexture(rad, len, longBands, latBands) {
         let vertices = [];
         let normals = [];
@@ -129,5 +134,6 @@ function SolidPipe(gl, radius, length, longitudeBands, latitudeBands, color) {
     pipe.numberOfTriangles = indices.numberOfIndices;
     pipe.color = color;
     pipe.draw = draw;
+    pipe.changeColor = changeColor;
     return pipe;
 }

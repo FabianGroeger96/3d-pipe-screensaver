@@ -9,7 +9,7 @@ Directions
  */
 
 /* const */
-const start_next_pipe_after_number_of_elements = 30;
+const start_next_pipe_after_number_of_elements = 100;
 const size_x = 100;
 const size_y = 100;
 const size_z = 100;
@@ -115,7 +115,7 @@ function makePipeStep(grid, pipe){
     let tile_info = last_pipe_step[2];
     let walk_axis = tile_info[1];
     let direction = tile_info[2];
-    let is_curve = getRandomInt(8);
+    let is_curve = getRandomInt(20);
     let next_tile = walkInDirectionFromTile(last_tile, walk_axis, direction);
     if (!checkIfEligibleDirection(grid, next_tile, walk_axis, direction)){
         is_curve = 0;
@@ -162,6 +162,7 @@ function getPaths(grid_size, element_count, pipes){
         padded_pipe = padded_pipe.concat(filler_post);
         paths.push(padded_pipe);
     }
+    paths = shortPaths(paths)
     return paths;
 }
 

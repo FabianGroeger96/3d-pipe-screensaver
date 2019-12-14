@@ -13,6 +13,10 @@
  */
 function SolidSphere(gl, latitudeBands, longitudeBands, color) {
 
+    function changeColor(color){
+        this.color = color;
+    }
+
     function defineVerticesAndTexture(latitudeBands, longitudeBands) {
         "use strict";
         // define the vertices of the sphere
@@ -128,5 +132,6 @@ function SolidSphere(gl, latitudeBands, longitudeBands, color) {
     sphere.numberOfTriangles = latitudeBands*longitudeBands*2;
     sphere.color = color;
     sphere.draw = draw;
+    sphere.changeColor = changeColor;
     return sphere;
 }

@@ -104,6 +104,7 @@ function SolidCylinder(gl, radius, length, longitudeBands, color) {
         gl.disableVertexAttribArray(aVertexNormalId);
     }
 
+
     let verticesAndTextures = defineVerticesAndTexture(radius, length, longitudeBands);
     let indices = defineIndices(longitudeBands);
 

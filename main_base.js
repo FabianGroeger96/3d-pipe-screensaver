@@ -2,17 +2,10 @@
 // Windows XP 3D Pipes Screen Saver
 //
 
-
-
 window.onload = startup;
 
 // the gl object is saved globally
 var gl;
-var pipes;
-var pipes_step;
-var pipes_appearances;
-var textures;
-var total_elapsed_time;
 
 // we keep all local parameters for the program in a single object
 const ctx = {
@@ -207,46 +200,44 @@ function createTextureFromFile(filename) {
     return texture;
 }
 
-function getAppearances(length) {
-    appearances = [];
-    for (var i = 0; i < length; i++){
-        let random = getRandomInt(2);
-        if (random === 0){
-            let appearance = [0, getRandomInt(255) / 255,
-                                getRandomInt(255) / 255,
-                                getRandomInt(255) / 255];
-            appearances.push(appearance)
-        }
-        if (random === 1){
-            let texture_number = getRandomInt(textures.length);
-            let appearance = [1, texture_number];
-            appearances.push(appearance)
-        }
-    }
-    return appearances;
-}
-
 /**
  * Setup scene.
  */
 function setUpScene() {
-    pipes = getPaths([100, 100, 100], 1000, 1);
-    pipes_step = 0;
-    textures = [];
-    textures.push(createTextureFromFile("candy_cane.png"));
-    textures.push(createTextureFromFile("knitting_pattern.png"));
-    pipes_appearances = getAppearances(pipes.length);
     let offset = 1;
+    let translationMatrix = mat4.create();
+    mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, offset, 0));
+
+    objects.cube = {
+        model: new SolidCubeWithNormals(gl, [[0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 0, 0], [1, 0, 1], [1, 1, 0]]),
+        texture: createTextureFromFile("lena512.png"),
+        transform: translationMatrix
+    };
+
+    translationMatrix = mat4.create();
+    mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, -offset, 0));
+
     objects.sphere = {
         model: new SolidSphere(gl, 30, 30, [0.3, 0.8, 0.3]),
-        transform: -1
+        transform: translationMatrix
     };
+
+    translationMatrix = mat4.create();
+    mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, 3 * offset, 0));
 
     objects.pipe = {
-        model: new SolidPipe(gl, 0.5, 1, 30, 30, [0.8, 0.8, 0.3]),
-        transform: -1
+        model: new SolidPipe(gl, 0.2, 1, 30, 30, [0.8, 0.8, 0.3]),
+        transform: translationMatrix
     };
 
+    translationMatrix = mat4.create();
+    mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, -3 * offset, 0));
+
+    objects.cylinder = {
+        model: new SolidCylinder(gl, 0.2, 1, 16, [0.8, 0.8, 0.3]),
+        texture: createTextureFromFile("candy_cane.png"),
+        transform: translationMatrix
+    }
 }
 
 /**
@@ -256,57 +247,11 @@ function draw() {
     "use strict";
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
     gl.uniform1i(ctx.uEnableLightingId, 1);
     gl.uniform3fv(ctx.uLightPositionId, renderSettings.light.position);
     gl.uniform3fv(ctx.uLightColorId, renderSettings.light.color);
-    for (var i = 0; i < pipes.length; i++){
-        let pipe = pipes[i];
-        for (var j = 0; j < pipes_step && j < pipe.length; j++){
-            let element = pipe[j];
-            let coords = element[0];
-            let drawedObjNumber = element[1];
-            let translationMatrix = mat4.create();
-            let obj = -1;
-            if (drawedObjNumber !== -1) {
-                mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(coords[0], coords[1], coords[2]));
-                if (drawedObjNumber === 0) {
-                    obj = objects.pipe;
-                    mat4.rotateZ(translationMatrix, translationMatrix, 90 * (Math.PI / 180.0));
-                }
-                if (drawedObjNumber === 1) {
-                    obj = objects.pipe;
-                }
-                if (drawedObjNumber === 2) {
-                    obj = objects.pipe;
-                    mat4.rotateX(translationMatrix, translationMatrix, 90 * (Math.PI / 180.0));
-                }
-                if (drawedObjNumber === 3) {
-                    obj = objects.sphere;
-                }
-                obj.transform = translationMatrix;
-                let modelViewMatrix = generateModelViewMatrix(obj.transform);
-                gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
-                let normalMatrix = mat3.create();
-                mat3.normalFromMat4(normalMatrix, modelViewMatrix);
-                gl.uniformMatrix3fv(ctx.uNormalMatId, false, normalMatrix);
 
-                if (pipes_appearances[i][0] === 0){
-                    obj.model.changeColor([pipes_appearances[i][0], pipes_appearances[i][1], pipes_appearances[i][2]]);
-                    gl.uniform1i(ctx.uEnableTextureId, 0);
-                }
-                if (pipes_appearances[i][0] === 1){
-                    let texture = pipes_appearances[i][1];
-                    gl.uniform1i(ctx.uEnableTextureId, 1);
-                    gl.activeTexture(gl.TEXTURE0);
-                    gl.bindTexture(gl.TEXTURE_2D, textures[texture]);
-                    gl.uniform1i(ctx.uSampler2DId, 0);
-                }
-                obj.model.draw(gl, ctx.aVertexPositionId, ctx.aVertexColorId, ctx.aTextureCoordId, ctx.aVertexNormalId);
-            }
-        }
-    }
-
-/*
     for (const [name, obj] of Object.entries(objects)) {
         // Set unique ModelViewMatrix and NormalMatrix
         let modelViewMatrix = generateModelViewMatrix(obj.transform);
@@ -329,7 +274,6 @@ function draw() {
         // Draw the object
         obj.model.draw(gl, ctx.aVertexPositionId, ctx.aVertexColorId, ctx.aTextureCoordId, ctx.aVertexNormalId);
     }
-    */
 }
 
 function drawAnimated(timeStamp) {
@@ -340,7 +284,7 @@ function drawAnimated(timeStamp) {
     }
     lastFrameTimestamp = timeStamp;
 
-    /*
+    // move or change objects
     for (const [name, obj] of Object.entries(objects)) {
         let cubeTransform = obj.transform;
         let rotationSpeed = 180 * elapsedTime;
@@ -355,10 +299,8 @@ function drawAnimated(timeStamp) {
         }
         obj.transform = cubeTransform;
     }
-    */
 
     draw();
-    pipes_step++;
 
     // request the next frame
     if (frameCount !== 0 && !tabIsInBackground) {
