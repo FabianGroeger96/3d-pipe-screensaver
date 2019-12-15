@@ -12,6 +12,7 @@ var pipes;
 var pipes_step;
 var pipes_appearances;
 var textures;
+var elements;
 var total_elapsed_time;
 
 // we keep all local parameters for the program in a single object
@@ -32,9 +33,10 @@ const ctx = {
 };
 
 const gridSettings = {
-    size: vec3.fromValues(20, 20, 20),
-    numberOfPipes: 1,
-    steps: 200
+    size: vec3.fromValues(25, 25, 25),
+    numberOfPipes: 3,
+    steps: 200,
+    numberOfWaitElements: 100
 };
 
 // defines all the render settings
@@ -49,7 +51,7 @@ const renderSettings = {
         backgroundColor: vec4.fromValues(0.1, 0.1, 0.1, 1)
     },
     camera: {
-        position: vec3.fromValues(-(gridSettings.size[0] / 2) * 3, 0.0, 0.0),
+        position: vec3.fromValues(-(gridSettings.size[0] / 2) * 0.5, 2.0, 0.0),
         lookAt: vec3.fromValues(0.0, 0.0, 0.0),
         rotation: vec3.fromValues(0.0, 0.0, 1)
     },
@@ -66,6 +68,7 @@ var frameCount = -1; // Limits the frames drawn
 // we keep all the parameters for drawing a specific object together
 var objects = {};
 
+
 /**
  * Startup function to be called when the body is loaded
  */
@@ -80,7 +83,6 @@ function startup() {
     window.addEventListener("keydown", onKeydown, false);
     window.addEventListener("resize", resizeWindow, false);
     window.addEventListener("visibilityChange", handleVisibilityChange, false);
-
     drawAnimated(0);
 }
 
@@ -101,7 +103,6 @@ function handleVisibilityChange() {
  */
 function resizeWindow() {
     let canvas = document.getElementById(renderSettings.viewPort.canvasId);
-
     setUpViewport(gl, canvas, ctx.uProjectionMatId, window.innerWidth, window.innerHeight, renderSettings.viewPort.fovy,
         renderSettings.viewPort.near, renderSettings.viewPort.far);
 }
@@ -234,12 +235,14 @@ function getAppearances(length) {
  * Setup scene.
  */
 function setUpScene() {
-    pipes = getPaths(gridSettings.size, gridSettings.steps, gridSettings.numberOfPipes);
+    console.log("create pipes");
+    pipes = getPaths(gridSettings.size, gridSettings.steps, gridSettings.numberOfPipes, gridSettings.numberOfWaitElements);
     pipes_step = 0;
     textures = [];
     textures.push(createTextureFromFile("candy_cane.png"));
     textures.push(createTextureFromFile("knitting_pattern.png"));
     pipes_appearances = getAppearances(pipes.length);
+    console.log("pipes created");
 
     objects.sphere = {
         model: new SolidSphere(gl, 0.25, 30, 30, [0.3, 0.8, 0.3])
@@ -248,10 +251,15 @@ function setUpScene() {
     objects.pipe = {
         model: new SolidPipe(gl, 0.2, 1, 10, 20, [0.8, 0.8, 0.3])
     };
+
+    objects.curve = {
+        model: new SolidCurve(gl, 0.2, 1, 10, 20, [0.8, 0.8, 0.3])
+    };
+
 }
 
 /**
- * Draw the scene.
+ * Draw the path.
  */
 function drawPath() {
     for (let i = 0; i < pipes.length; i++){
@@ -302,6 +310,9 @@ function drawPath() {
     }
 }
 
+/**
+ * Draw the edges.
+ */
 function drawEdges() {
     let offX = gridSettings.size[0] / 2;
     let offY = gridSettings.size[1] / 2;
@@ -338,7 +349,6 @@ function draw() {
     gl.uniform1i(ctx.uEnableLightingId, 1);
     gl.uniform3fv(ctx.uLightPositionId, renderSettings.light.position);
     gl.uniform3fv(ctx.uLightColorId, renderSettings.light.color);
-
     drawEdges();
     drawPath();
 }
@@ -370,7 +380,9 @@ function drawAnimated(timeStamp) {
 
     draw();
     pipes_step++;
-
+    if (pipes_step >= pipes[0].length){
+        setUpScene();
+    }
     // request the next frame
     if (frameCount !== 0 && !tabIsInBackground) {
         window.requestAnimationFrame(drawAnimated);

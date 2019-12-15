@@ -104,7 +104,7 @@ function createPipe(grid){
     } while (!checkIfEligibleDirection(grid, start_tile, walk_axis, direction));
     registerUsedGridTile(grid, start_tile);
     var tileInfo = [1, walk_axis, direction];
-    var element = getElementFromDirection(tileInfo);
+    var element = 3;
     var pipe_step = [start_tile, element, tileInfo];
     pipe.push(pipe_step);
     return pipe;
@@ -115,7 +115,7 @@ function makePipeStep(grid, pipe){
     let tile_info = last_pipe_step[2];
     let walk_axis = tile_info[1];
     let direction = tile_info[2];
-    let is_curve = getRandomInt(20);
+    let is_curve = getRandomInt(8);
     let next_tile = walkInDirectionFromTile(last_tile, walk_axis, direction);
     if (!checkIfEligibleDirection(grid, next_tile, walk_axis, direction)){
         is_curve = 0;
@@ -132,7 +132,7 @@ function makePipeStep(grid, pipe){
         var new_tile_info = [1, new_walk_axis, new_direction];
     }
     registerUsedGridTile(grid, next_tile);
-    var element = getElementFromDirection(new_tile_info);
+    var element = getElementFromDirection(new_tile_info, pipe);
     var next_step = [next_tile, element, new_tile_info];
     pipe.push(next_step);
     return pipe;
@@ -140,7 +140,7 @@ function makePipeStep(grid, pipe){
 
 /* Generator */
 
-function getPaths(grid_size, element_count, pipes){
+function getPaths(grid_size, element_count, pipes, number_of_wait_elements=100){
     let filler_step = [[-1, -1, -1], -1, [-1, -1, -1]];
     let paths = [];
     let grid = createGrid(grid_size);
@@ -151,20 +151,21 @@ function getPaths(grid_size, element_count, pipes){
         }
         let padded_pipe = [];
         let filler_pre = [];
-        for (let j = 0; j < i * start_next_pipe_after_number_of_elements; j++){
+        for (let j = 0; j < i * number_of_wait_elements; j++){
             filler_pre.push(filler_step)
         }
         padded_pipe = filler_pre.concat(pipe);
         let filler_post = [];
-        for (let j = 0; j < (pipes - i) * start_next_pipe_after_number_of_elements; j++){
+        for (let j = 0; j < (pipes - i) * number_of_wait_elements; j++){
             filler_post.push(filler_step)
         }
         padded_pipe = padded_pipe.concat(filler_post);
         paths.push(padded_pipe);
     }
-    paths = shortPaths(paths)
+    //paths = shortPaths(paths);
     return paths;
 }
+
 
 function shortPaths(paths){
     var shortPaths = [];
