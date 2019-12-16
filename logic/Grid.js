@@ -13,6 +13,7 @@ const start_next_pipe_after_number_of_elements = 100;
 const size_x = 100;
 const size_y = 100;
 const size_z = 100;
+coolids = false;
 
 /* Helpers */
 
@@ -34,14 +35,95 @@ function dim(mat) {
         return [];
     }
 }
-function getElementFromDirection(tile_info){
+
+function getCurveFromDirection(tile_info, pipe) {
+    let walk_axis_current = tile_info[1] + 1;
+    let direction_current = tile_info[2];
+    if (direction_current === 1){
+        direction_current = -1;
+    }
+    if (direction_current === 0){
+        direction_current = 1;
+    }
+    let previous_tile = pipe[pipe.length - 1][2];
+    let previous_coord = pipe[pipe.length - 1][0];
+    let previous_walk_axis = previous_tile[1] + 1;
+    let previous_direction = previous_tile[2];
+
+    if (previous_direction === 1){
+        previous_direction = -1;
+    }
+    if (previous_direction === 0){
+        previous_direction = 1;
+    }
+    let cur_axis = direction_current * walk_axis_current;
+    let prev_axis = previous_direction * previous_walk_axis;
+
+    if ((prev_axis === 3 && cur_axis === -2) || (prev_axis === 2 && cur_axis === -3)){
+        return 4;
+    }
+
+    if ((prev_axis === -3 && cur_axis === -2) || (prev_axis === 2 && cur_axis === 3)){
+        return 5;
+    }
+
+    if ((prev_axis === -3 && cur_axis === 2) || (prev_axis === -2 && cur_axis === 3)){
+        return 6;
+    }
+
+    if ((prev_axis === 3 && cur_axis === 2) || (prev_axis === -2 && cur_axis === -3)){
+        return 7;
+    }
+
+
+    if ((prev_axis === 3 && cur_axis === 1) || (prev_axis === -1 && cur_axis === -3)){
+        return 8;
+    }
+
+    if ((prev_axis === 3 && cur_axis === -1) || (prev_axis === 1 && cur_axis === -3)){
+        return 9;
+    }
+
+    if ((prev_axis === -3 && cur_axis === 1) || (prev_axis === -1 && cur_axis === 3)){
+        return 10;
+    }
+
+    if ((prev_axis === -3 && cur_axis === -1) || (prev_axis === 1 && cur_axis === 3)){
+        return 11;
+    }
+
+
+    if ((prev_axis === -1 && cur_axis === -2) || (prev_axis === 2 && cur_axis === 1)){
+        return 12;
+    }
+
+    if ((prev_axis === 1 && cur_axis === 2) || (prev_axis === -2 && cur_axis === -1)){
+        return 13;
+    }
+
+    if ((prev_axis === -1 && cur_axis === 2) || (prev_axis === -2 && cur_axis === 1)){
+        return 14;
+    }
+
+    if ((prev_axis === 1 && cur_axis === -2) || (prev_axis === 2 && cur_axis === -1)){
+        return 15;
+    }
+
+    console.log("no curve found")
+
+}
+
+function getElementFromDirection(tile_info, pipe){
     let element = tile_info[0];
-    let direction = tile_info[1];
+    let walk_axis = tile_info[1];
     if (element === 0){
-        return direction;
+        return walk_axis;
     }
     if (element === 1){
         return 3;
+    }
+    if (element === 2){
+        return getCurveFromDirection(tile_info, pipe)
     }
 }
 
@@ -125,11 +207,21 @@ function makePipeStep(grid, pipe){
         new_tile_info[0] = 0;
     }
     if (is_curve === 0){
+        var tries = 0;
         do {
             var new_walk_axis = getRandomInt(3);
             var new_direction = getRandomInt(2);
+            tries++;
+            if (tries > 16){
+                collids = true;
+                return pipe;
+            }
         } while (new_walk_axis === walk_axis || !checkIfEligibleDirection(grid, next_tile, new_walk_axis, new_direction));
-        var new_tile_info = [1, new_walk_axis, new_direction];
+        let is_sphere = getRandomInt(8);
+        var new_tile_info = [2, new_walk_axis, new_direction];
+        if (is_sphere === 0 && pipe[pipe.length -1][1] !== 3){
+            var new_tile_info = [1, new_walk_axis, new_direction];
+        }
     }
     registerUsedGridTile(grid, next_tile);
     var element = getElementFromDirection(new_tile_info, pipe);
@@ -141,6 +233,7 @@ function makePipeStep(grid, pipe){
 /* Generator */
 
 function getPaths(grid_size, element_count, pipes, number_of_wait_elements=100){
+    collids = false;
     let filler_step = [[-1, -1, -1], -1, [-1, -1, -1]];
     let paths = [];
     let grid = createGrid(grid_size);
@@ -148,6 +241,9 @@ function getPaths(grid_size, element_count, pipes, number_of_wait_elements=100){
         let pipe = createPipe(grid);
         for (let j = 0; j < element_count - 1; j++){
             pipe = makePipeStep(grid, pipe);
+            if (collids){
+                break;
+            }
         }
         let padded_pipe = [];
         let filler_pre = [];
@@ -161,6 +257,9 @@ function getPaths(grid_size, element_count, pipes, number_of_wait_elements=100){
         }
         padded_pipe = padded_pipe.concat(filler_post);
         paths.push(padded_pipe);
+        if (collids){
+            return paths;
+        }
     }
     //paths = shortPaths(paths);
     return paths;

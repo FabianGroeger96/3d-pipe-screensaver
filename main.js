@@ -12,8 +12,8 @@ var pipes;
 var pipes_step;
 var pipes_appearances;
 var textures;
-var elements;
-var total_elapsed_time;
+var rotation_matrices = [];
+
 
 // we keep all local parameters for the program in a single object
 const ctx = {
@@ -34,8 +34,8 @@ const ctx = {
 
 const gridSettings = {
     size: vec3.fromValues(25, 25, 25),
-    numberOfPipes: 3,
-    steps: 200,
+    numberOfPipes: 30,
+    steps: 50,
     numberOfWaitElements: 100
 };
 
@@ -51,7 +51,7 @@ const renderSettings = {
         backgroundColor: vec4.fromValues(0.1, 0.1, 0.1, 1)
     },
     camera: {
-        position: vec3.fromValues(-(gridSettings.size[0] / 2), 2.0, 0.0),
+        position: vec3.fromValues(-(gridSettings.size[0] * 0.5), 2.0, 0.0),
         lookAt: vec3.fromValues(0.0, 0.0, 0.0),
         rotation: vec3.fromValues(0.0, 0.0, 1)
     },
@@ -68,6 +68,109 @@ var frameCount = -1; // Limits the frames drawn
 // we keep all the parameters for drawing a specific object together
 var objects = {};
 
+function setupRotationMatrices(){
+    // PIPES
+    // element = 0
+    var transformationMatrix = mat4.create();
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0)));
+    // element = 1
+    transformationMatrix = mat4.create();
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 0));
+    // element = 2
+    transformationMatrix = mat4.create();
+    rotation_matrices.push(mat4.rotateX(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0)));
+
+    // SPHERE
+    // element = 3
+    transformationMatrix = mat4.create();
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 0));
+
+    // CURVES
+    // element = 4
+    transformationMatrix = mat4.create();
+    mat4.rotateY(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0)));
+    // element = 5
+    transformationMatrix = mat4.create();
+    mat4.rotateY(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 0));
+    // element = 6
+    transformationMatrix = mat4.create();
+    mat4.rotateY(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 270 * (Math.PI / 180.0)));
+    // element = 7
+    transformationMatrix = mat4.create();
+    mat4.rotateY(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 180 * (Math.PI / 180.0)));
+
+    // element = 8
+    transformationMatrix = mat4.create();
+    mat4.rotateX(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0)));
+    // element = 9
+    transformationMatrix = mat4.create();
+    mat4.rotateX(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 0));
+    // element = 10
+    transformationMatrix = mat4.create();
+    mat4.rotateX(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 180 * (Math.PI / 180.0)));
+    // element = 11
+    transformationMatrix = mat4.create();
+    mat4.rotateX(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 270 * (Math.PI / 180.0)));
+
+    // element = 12
+    transformationMatrix = mat4.create();
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0)));
+    // element = 13
+    transformationMatrix = mat4.create();
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 270 * (Math.PI / 180.0)));
+    // element = 14
+    transformationMatrix = mat4.create();
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 180 * (Math.PI / 180.0)));
+    // element = 15
+    transformationMatrix = mat4.create();
+    rotation_matrices.push(mat4.rotateZ(transformationMatrix, transformationMatrix, 0));
+    console.log(rotation_matrices);
+}
+
+
+function drawSimpleCurveScene() {
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.uniform1i(ctx.uEnableLightingId, 1);
+    gl.uniform3fv(ctx.uLightPositionId, renderSettings.light.position);
+    gl.uniform3fv(ctx.uLightColorId, renderSettings.light.color);
+
+    obj = objects.curve;
+
+    let transformationMatrix = mat4.create();
+    mat4.fromTranslation(transformationMatrix, [-gridSettings.size[0] / 2, -gridSettings.size[1] / 2, -gridSettings.size[2] / 2]);
+    mat4.translate(transformationMatrix, transformationMatrix, vec3.fromValues(25, 0, 25));
+    mat4.multiply(transformationMatrix, transformationMatrix, rotation_matrices[9])
+    let modelViewMatrix = generateModelViewMatrix(transformationMatrix);
+    gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
+    let normalMatrix = mat3.create();
+    mat3.normalFromMat4(normalMatrix, modelViewMatrix);
+    gl.uniformMatrix3fv(ctx.uNormalMatId, false, normalMatrix);
+
+    // Enable or disable textures
+    if (obj.texture) {
+        gl.uniform1i(ctx.uEnableTextureId, 1);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, obj.texture);
+        gl.uniform1i(ctx.uSampler2DId, 0);
+    } else {
+        gl.uniform1i(ctx.uEnableTextureId, 0);
+    }
+
+    // Draw the object
+    obj.model.draw(gl, ctx.aVertexPositionId, ctx.aVertexColorId, ctx.aTextureCoordId, ctx.aVertexNormalId);
+
+}
 
 /**
  * Startup function to be called when the body is loaded
@@ -76,6 +179,7 @@ function startup() {
     let canvas = document.getElementById(renderSettings.viewPort.canvasId);
 
     gl = createGLContext(canvas);
+    setupRotationMatrices();
     initGL();
     resizeWindow();
 
@@ -83,6 +187,7 @@ function startup() {
     window.addEventListener("keydown", onKeydown, false);
     window.addEventListener("resize", resizeWindow, false);
     window.addEventListener("visibilityChange", handleVisibilityChange, false);
+    //drawSimpleCurveScene();
     drawAnimated(0);
 }
 
@@ -245,7 +350,7 @@ function setUpScene() {
     console.log("pipes created");
 
     objects.sphere = {
-        model: new SolidSphere(gl, 0.25, 10, 10, [0.3, 0.8, 0.3])
+        model: new SolidSphere(gl, 0.5, 10, 10, [0.3, 0.8, 0.3])
     };
 
     objects.pipe = {
@@ -275,18 +380,20 @@ function drawPath() {
                 mat4.translate(transformationMatrix, transformationMatrix, vec3.fromValues(coords[0], coords[1], coords[2]));
                 if (drawedObjNumber === 0) {
                     obj = objects.pipe;
-                    mat4.rotateZ(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
                 }
                 if (drawedObjNumber === 1) {
                     obj = objects.pipe;
                 }
                 if (drawedObjNumber === 2) {
                     obj = objects.pipe;
-                    mat4.rotateX(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
                 }
                 if (drawedObjNumber === 3) {
+                    obj = objects.sphere;
+                }
+                if (drawedObjNumber > 3) {
                     obj = objects.curve;
                 }
+                mat4.multiply(transformationMatrix, transformationMatrix, rotation_matrices[drawedObjNumber]);
                 let modelViewMatrix = generateModelViewMatrix(transformationMatrix);
                 gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
                 let normalMatrix = mat3.create();
@@ -377,10 +484,9 @@ function drawAnimated(timeStamp) {
         obj.transform = cubeTransform;
     }
     */
-
     draw();
     pipes_step++;
-    if (pipes_step >= pipes[0].length){
+    if (pipes_step >= pipes[0].length) {
         setUpScene();
     }
     // request the next frame
@@ -412,4 +518,8 @@ function onKeydown(event) {
 
 function onKeyup(event) {
     delete key._pressed[event.keyCode];
+}
+
+function Sleep(milliseconds) {
+   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
