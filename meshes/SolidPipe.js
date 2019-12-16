@@ -41,9 +41,11 @@ function SolidPipe(gl, radius, length, longitudeBands, color) {
                 vertices.push(y);
                 vertices.push(z);
 
-                normals.push(x);
-                normals.push(endPiece ? latHeight : 0); // Normal correction
-                normals.push(z);
+                let normal = vec3.fromValues(x, endPiece ? latHeight : 0, z);
+                vec3.normalize(normal, normal);
+                normals.push(normal[0]);
+                normals.push(normal[1]);
+                normals.push(normal[2]);
 
                 textures.push(u);
                 textures.push(v);
@@ -106,6 +108,7 @@ function SolidPipe(gl, radius, length, longitudeBands, color) {
         // disable attributes
         gl.disableVertexAttribArray(aVertexPositionId);
         gl.disableVertexAttribArray(aVertexNormalId);
+        gl.disableVertexAttribArray(aVertexTextureCoordId);
     }
 
 
