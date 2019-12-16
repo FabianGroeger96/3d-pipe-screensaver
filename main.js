@@ -51,7 +51,7 @@ const renderSettings = {
         backgroundColor: vec4.fromValues(0.1, 0.1, 0.1, 1)
     },
     camera: {
-        position: vec3.fromValues(-(gridSettings.size[0] / 2) * 0.5, 2.0, 0.0),
+        position: vec3.fromValues(-(gridSettings.size[0] / 2), 2.0, 0.0),
         lookAt: vec3.fromValues(0.0, 0.0, 0.0),
         rotation: vec3.fromValues(0.0, 0.0, 1)
     },
@@ -245,15 +245,15 @@ function setUpScene() {
     console.log("pipes created");
 
     objects.sphere = {
-        model: new SolidSphere(gl, 0.25, 30, 30, [0.3, 0.8, 0.3])
+        model: new SolidSphere(gl, 0.25, 10, 10, [0.3, 0.8, 0.3])
     };
 
     objects.pipe = {
-        model: new SolidPipe(gl, 0.2, 1, 10, 20, [0.8, 0.8, 0.3])
+        model: new SolidPipe(gl, 0.2, 1, 10,[0.8, 0.8, 0.3])
     };
 
     objects.curve = {
-        model: new SolidCurve(gl, 0.2, 1, 10, 20, [0.8, 0.8, 0.3])
+        model: new SolidCurve(gl, 0.2, 1, 8, 10, [0.8, 0.8, 0.3])
     };
 
 }
@@ -285,7 +285,7 @@ function drawPath() {
                     mat4.rotateX(transformationMatrix, transformationMatrix, 90 * (Math.PI / 180.0));
                 }
                 if (drawedObjNumber === 3) {
-                    obj = objects.sphere;
+                    obj = objects.curve;
                 }
                 let modelViewMatrix = generateModelViewMatrix(transformationMatrix);
                 gl.uniformMatrix4fv(ctx.uModelViewMatId, false, modelViewMatrix);
