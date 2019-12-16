@@ -1,7 +1,7 @@
 /**
  * Define a cylinder that can be drawn with texture or color.
  */
-function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wireframe = false, curveRadius = 0.5, curveAngle = Math.PI / 2) {
+function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wireframe = false, curveRadius = 0.5, curveAngle = Math.PI / 2, drawNormals = false) {
     function changeColor(color){
         this.color = color;
     }
@@ -15,8 +15,11 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
         //let curveAngle = Math.PI / 2;
 
         let deflectionMat = mat4.create();
+        let deflectionAngle = curveAng / (latBands + 1 - 4);
+        mat4.fromZRotation(deflectionMat, deflectionAngle);
+        let ringDeflectionMat = mat4.create();
 
-        let sectionDistance = (2 - 2 * (1 - curveRad)) / (latBands - 4);
+        let sectionDistance = 2 * curveRad * Math.sin(Math.PI / ((latBands - 4) * 4));
         let ringCoordinates = [];
 
         for (let longNumber = 0; longNumber <= longBands; longNumber++) {
@@ -52,14 +55,15 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
             vSum += distanceToNextRing[latNumber];
 
             // Update deflectionMat
-            if (latNumber === 3) {
-                mat4.fromZRotation(deflectionMat, curveAng / (latBands + 1 - 5));
-            } else if (latNumber === latBands - 1) {
-                mat4.identity(deflectionMat);
+            if (latNumber > 2 && latNumber <= latBands - 2) {
+                let ringAngle = (latNumber - 2) * (curveAng / (latBands + 1 - 5));
+                mat4.fromZRotation(ringDeflectionMat, ringAngle);
             }
 
             // Determine the new direction
-            vec3.transformMat4(direction, direction, deflectionMat);
+            if (latNumber >= 3 && latNumber <= latBands - 1) {
+                vec3.transformMat4(direction, direction, deflectionMat);
+            }
             let newDirection = vec3.clone(direction);
             vec3.scale(newDirection, newDirection, distanceToNextRing[latNumber]);
 
@@ -72,8 +76,8 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
             for (let longNumber = 0; longNumber <= longBands; longNumber++) {
                 vec = vec3.clone(newPoint);
                 if (!endPiece) {
-                    let ringCoord = ringCoordinates[longNumber];
-                    vec3.transformMat4(ringCoord, ringCoord, deflectionMat);
+                    let ringCoord = vec3.clone(ringCoordinates[longNumber]);
+                    vec3.transformMat4(ringCoord, ringCoord, ringDeflectionMat);
                     vec3.add(vec, vec, ringCoord);
                 }
 
@@ -83,9 +87,12 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
                 vertices.push(vec[2]);
 
                 if (!endPiece) {
-                    normals.push(vec[0]);
-                    normals.push(vec[1]);
-                    normals.push(vec[2]);
+                    let normal = vec3.clone(vec);
+                    vec3.subtract(normal, normal, newPoint);
+                    vec3.normalize(normal, normal);
+                    normals.push(normal[0]);
+                    normals.push(normal[1]);
+                    normals.push(normal[2]);
                 } else {
                     if (latNumber < latBands / 2) {
                         normals.push(0);
@@ -104,7 +111,6 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
 
                 let u = 1 - (longNumber / longBands);
                 let v = vSum;
-                
                 textures.push(u);
                 textures.push(v);
             }
@@ -161,6 +167,22 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
         };
     }
 
+    function defineNormalDisplayArray(vertices, normals) {
+        let normalDisplayArray = [];
+        const normalLength = 0.5;
+        for (let i = 0; i < vertices.length; i += 3) {
+            normalDisplayArray.push(vertices[i]);
+            normalDisplayArray.push(vertices[i + 1]);
+            normalDisplayArray.push(vertices[i + 2]);
+
+            normalDisplayArray.push(vertices[i] + normalLength * normals[i]);
+            normalDisplayArray.push(vertices[i + 1] + normalLength * normals[i + 1]);
+            normalDisplayArray.push(vertices[i + 2] + normalLength * normals[i + 2]);
+        }
+
+        return normalDisplayArray;
+    }
+
     function draw(gl, aVertexPositionId, aVertexColorId, aVertexTextureCoordId, aVertexNormalId) {
         // position
         gl.bindBuffer(gl.ARRAY_BUFFER, this.bufferVertices);
@@ -192,6 +214,19 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
         // disable attributes
         gl.disableVertexAttribArray(aVertexPositionId);
         gl.disableVertexAttribArray(aVertexNormalId);
+        gl.disableVertexAttribArray(aVertexTextureCoordId);
+
+        if (drawNormals) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.bufferDisplayNormals);
+            gl.vertexAttribPointer(aVertexPositionId, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(aVertexPositionId);
+
+            gl.vertexAttrib3f(aVertexColorId, 1, 0, 0);
+
+            gl.drawArrays(gl.LINES, 0, this.numberOfVertices * 3  * 2);
+        }
+
+        gl.disableVertexAttribArray(aVertexPositionId);
     }
 
     let verticesAndTextures = defineVerticesAndTexture(radius, length, latitudeBands, longitudeBands,
@@ -222,7 +257,15 @@ function SolidCurve(gl, radius, length, latitudeBands, longitudeBands, color, wi
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pipe.bufferIndices);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices.indices), gl.STATIC_DRAW);
 
+    if (drawNormals) {
+        let normalDisplayArray = defineNormalDisplayArray(verticesAndTextures.vertices, verticesAndTextures.normals);
+        pipe.bufferDisplayNormals = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, pipe.bufferDisplayNormals);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normalDisplayArray), gl.STATIC_DRAW);
+    }
+
     pipe.numberOfPrimitives = indices.numberOfIndices;
+    pipe.numberOfVertices = verticesAndTextures.numberOfVertices;
     pipe.color = color;
     pipe.draw = draw;
     pipe.changeColor = changeColor;

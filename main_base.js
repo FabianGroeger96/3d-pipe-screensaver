@@ -225,8 +225,8 @@ function setUpScene() {
     mat4.translate(translationMatrix, translationMatrix, vec3.fromValues(0, 3 * offset, 0));
 
     objects.pipe = {
-        model: new SolidCurve(gl, 0.2, 1, 30, 30, [0.8, 0.8, 0.3],
-            false, 0.5, Math.PI / 2),
+        model: new SolidCurve(gl, 0.25, 1, 7, 5, [0.8, 0.8, 0.3],
+            true, 0.5, Math.PI / 2 , true),
         texture: createTextureFromFile("candy_cane.png"),
         transform: translationMatrix
     };
