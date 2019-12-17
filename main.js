@@ -14,6 +14,8 @@ var pipes_appearances;
 var textures;
 var rotation_matrices = [];
 
+// useful for debugging but absolutely kills performance
+const enableDebugging = false;
 
 // we keep all local parameters for the program in a single object
 const ctx = {
@@ -178,7 +180,11 @@ function drawSimpleCurveScene() {
 function startup() {
     let canvas = document.getElementById(renderSettings.viewPort.canvasId);
 
-    gl = createGLContext(canvas);
+    if (enableDebugging) {
+        gl = createGLContext(canvas);
+    } else {
+        gl = canvas.getContext("webgl");
+    }
     setupRotationMatrices();
     initGL();
     resizeWindow();
@@ -350,15 +356,15 @@ function setUpScene() {
     console.log("pipes created");
 
     objects.sphere = {
-        model: new SolidSphere(gl, 0.5, 10, 10, [0.3, 0.8, 0.3])
+        model: new SolidSphere(gl, 0.5, 16, 16, [0.3, 0.8, 0.3])
     };
 
     objects.pipe = {
-        model: new SolidPipe(gl, 0.2, 1, 10,[0.8, 0.8, 0.3])
+        model: new SolidPipe(gl, 0.2, 1, 16,[0.8, 0.8, 0.3])
     };
 
     objects.curve = {
-        model: new SolidCurve(gl, 0.2, 1, 8, 10, [0.8, 0.8, 0.3])
+        model: new SolidCurve(gl, 0.2, 1, 12, 16, [0.8, 0.8, 0.3])
     };
 
 }
