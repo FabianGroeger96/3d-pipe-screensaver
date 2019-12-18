@@ -108,9 +108,6 @@ function getCurveFromDirection(tile_info, pipe) {
     if ((prev_axis === 1 && cur_axis === -2) || (prev_axis === 2 && cur_axis === -1)){
         return 15;
     }
-
-    console.log("no curve found")
-
 }
 
 function getElementFromDirection(tile_info, pipe){
@@ -198,6 +195,7 @@ function makePipeStep(grid, pipe){
     let walk_axis = tile_info[1];
     let direction = tile_info[2];
     let is_curve = getRandomInt(8);
+    var is_sphere = -1;
     let next_tile = walkInDirectionFromTile(last_tile, walk_axis, direction);
     if (!checkIfEligibleDirection(grid, next_tile, walk_axis, direction)){
         is_curve = 0;
@@ -212,12 +210,12 @@ function makePipeStep(grid, pipe){
             var new_walk_axis = getRandomInt(3);
             var new_direction = getRandomInt(2);
             tries++;
-            if (tries > 16){
+            if (tries > 128){
                 collids = true;
                 return pipe;
             }
         } while (new_walk_axis === walk_axis || !checkIfEligibleDirection(grid, next_tile, new_walk_axis, new_direction));
-        let is_sphere = getRandomInt(8);
+        is_sphere = getRandomInt(8);
         var new_tile_info = [2, new_walk_axis, new_direction];
         if (is_sphere === 0 && pipe[pipe.length -1][1] !== 3){
             var new_tile_info = [1, new_walk_axis, new_direction];
@@ -226,6 +224,12 @@ function makePipeStep(grid, pipe){
     registerUsedGridTile(grid, next_tile);
     var element = getElementFromDirection(new_tile_info, pipe);
     var next_step = [next_tile, element, new_tile_info];
+    if (is_curve === 0 && is_sphere === 0){
+        var beautify_sphere_tile_info = [2, new_walk_axis, new_direction];
+        var beautify_element = getElementFromDirection(beautify_sphere_tile_info, pipe);
+        var beautify_step = [next_tile, beautify_element, beautify_sphere_tile_info];
+        pipe.push(beautify_step);
+    }
     pipe.push(next_step);
     return pipe;
 }
@@ -245,6 +249,7 @@ function getPaths(grid_size, element_count, pipes, number_of_wait_elements=100){
                 break;
             }
         }
+        pipe[pipe.length - 1][1] = 3;
         let padded_pipe = [];
         let filler_pre = [];
         for (let j = 0; j < i * number_of_wait_elements; j++){
