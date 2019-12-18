@@ -36,8 +36,8 @@ const ctx = {
 
 const gridSettings = {
     size: vec3.fromValues(25, 25, 25),
-    numberOfPipes: 30,
-    steps: 50,
+    numberOfPipes: 5,
+    steps: 300,
     numberOfWaitElements: 100
 };
 
@@ -53,7 +53,7 @@ const renderSettings = {
         backgroundColor: vec4.fromValues(0.1, 0.1, 0.1, 1)
     },
     camera: {
-        position: vec3.fromValues(-(gridSettings.size[0] * 0.5), 2.0, 0.0),
+        position: vec3.fromValues(-(gridSettings.size[0] * 0.8), 3.0, 0.0),
         lookAt: vec3.fromValues(0.0, 0.0, 0.0),
         rotation: vec3.fromValues(0.0, 0.0, 1)
     },
@@ -352,11 +352,13 @@ function setUpScene() {
     textures = [];
     textures.push(createTextureFromFile("candy_cane.png"));
     textures.push(createTextureFromFile("knitting_pattern.png"));
+    textures.push(createTextureFromFile("christmas_green.jpg"));
+    textures.push(createTextureFromFile("christmas_white.jpg"));
     pipes_appearances = getAppearances(pipes.length);
     console.log("pipes created");
 
     objects.sphere = {
-        model: new SolidSphere(gl, 0.5, 16, 16, [0.3, 0.8, 0.3])
+        model: new SolidSphere(gl, 0.4, 16, 16, [0.3, 0.8, 0.3])
     };
 
     objects.pipe = {
@@ -462,7 +464,7 @@ function draw() {
     gl.uniform1i(ctx.uEnableLightingId, 1);
     gl.uniform3fv(ctx.uLightPositionId, renderSettings.light.position);
     gl.uniform3fv(ctx.uLightColorId, renderSettings.light.color);
-    drawEdges();
+    //drawEdges();
     drawPath();
 }
 
